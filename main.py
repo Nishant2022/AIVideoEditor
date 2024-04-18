@@ -1,9 +1,11 @@
 import ffmpeg
+import cv2
 
 
 def get_text_intro(
         name: str,
         division: str,
+        fps: int,
         duration: int = 3,
         width: int = 1920,
         height: int = 1080,
@@ -17,6 +19,7 @@ def get_text_intro(
     Parameters:
     name (str): Name of competitor
     division (str): Division of competitor
+    fps (int): Desired fps
     duration (int): Duration of returned clip in seconds (default: 3)
     width (int): Width of returned clip in pixels (default: 1920)
     height (int): Height of returned clip in pixels (default: 1080)
@@ -27,7 +30,7 @@ def get_text_intro(
     Returns:
     ffmpeg.Stream
     """
-    background = ffmpeg.input(f"color={backgroundcolor}:{width}x{height}", t=duration, f="lavfi")
+    background = ffmpeg.input(f"color={backgroundcolor}:{width}x{height}", t=duration, f="lavfi", r=fps)
 
     # Add name
     background = background.drawtext(
@@ -47,12 +50,33 @@ def get_text_intro(
         fontsize=fontsize
     )
 
-    return background
+    # Set timebase
+    background = background.filter("settb", "AVTB")
+
+    # Create Audio
+    background_audio = ffmpeg.input("anullsrc", t=duration, f="lavfi")
+
+    return background, background_audio
 
 
 if __name__ == '__main__':
 
-    background = get_text_intro("Nishant Dash", "Black Belt Poomsae")
-    temp = background.output('out.mp4').overwrite_output()
-    # print(temp.compile())
-    temp.run()
+    input_video = "IMG_1180.MOV"
+    # Get source fps
+    cap = cv2.VideoCapture(input_video)
+    fps = cap.get(cv2.CAP_PROP_FPS)
+    fps = ffmpeg.probe(input_video)["streams"][0]["r_frame_rate"]
+
+    match = ffmpeg.input(input_video, vsync=2)
+
+    match_video = match.video
+    match_audio = match.audio
+
+    # Get intro video
+    intro, intro_audio = get_text_intro("Nishant Dash", "Black Belt Poomsae", fps=fps)
+
+    video = ffmpeg.filter([intro, match_video.filter("settb", "AVTB")], "xfade", transition="fade", offset=2)
+    audio = ffmpeg.filter([intro_audio, match_audio], "acrossfade", d=1)
+    output = ffmpeg.output(audio, video, 'out.mp4').overwrite_output()
+    print(output.compile())
+    # output.run()
