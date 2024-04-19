@@ -1,82 +1,43 @@
-import ffmpeg
-import cv2
+import csv
+import pathlib
+from video_info import VideoInfo
+from create_video import create_video
+from progress_bar import ProgressBar
 
 
-def get_text_intro(
-        name: str,
-        division: str,
-        fps: int,
-        duration: int = 3,
-        width: int = 1920,
-        height: int = 1080,
-        backgroundcolor: str = 'black',
-        fontcolor: str = 'white',
-        fontsize: int = 96
-):
-    """
-    Takes competitor name and divsion and returns background with that information over it.
+def read_config(config_file_path: str = "config.csv"):
+    if not pathlib.Path(config_file_path).is_file():
+        print(f"File: {config_file_path} does not exist. Please input a valid config file.")
+        exit(1)
 
-    Parameters:
-    name (str): Name of competitor
-    division (str): Division of competitor
-    fps (int): Desired fps
-    duration (int): Duration of returned clip in seconds (default: 3)
-    width (int): Width of returned clip in pixels (default: 1920)
-    height (int): Height of returned clip in pixels (default: 1080)
-    backgroundcolor (str): Background color (default: 'black')
-    fontcolor (str): Font color (default: 'white')
-    fontsize (int): Font size (default: 96)
+    config = []
+    with open(config_file_path) as config_file:
+        reader = csv.reader(config_file)
+        header = True
+        for row in reader:
+            if header:
+                header = False
+                continue
+            first_line = row[0]
+            second_line = row[1]
+            path = row[2]
 
-    Returns:
-    ffmpeg.Stream
-    """
-    background = ffmpeg.input(f"color={backgroundcolor}:{width}x{height}", t=duration, f="lavfi", r=fps)
+            segments = []
+            for i in range(3, len(row) - 1, 2):
+                if i + 1 >= len(row):
+                    break
+                if len(row[i]) and len(row[i+1]):
+                    segments.append((int(row[i]), int(row[i+1])))
 
-    # Add name
-    background = background.drawtext(
-        text=name,
-        x='(w-text_w)/2',
-        y='(h - 4 * text_h)/2',
-        fontcolor=fontcolor,
-        fontsize=fontsize,
-    )
-
-    # Add division
-    background = background.drawtext(
-        text=division,
-        x='(w-text_w)/2',
-        y='(h - text_h)/2',
-        fontcolor=fontcolor,
-        fontsize=fontsize
-    )
-
-    # Set timebase
-    background = background.filter("settb", "AVTB")
-
-    # Create Audio
-    background_audio = ffmpeg.input("anullsrc", t=duration, f="lavfi")
-
-    return background, background_audio
+            config.append(VideoInfo(first_line, second_line, path, segments))
+    return config
 
 
-if __name__ == '__main__':
-
-    input_video = "IMG_1180.MOV"
-    # Get source fps
-    cap = cv2.VideoCapture(input_video)
-    fps = cap.get(cv2.CAP_PROP_FPS)
-    fps = ffmpeg.probe(input_video)["streams"][0]["r_frame_rate"]
-
-    match = ffmpeg.input(input_video, vsync=2)
-
-    match_video = match.video
-    match_audio = match.audio
-
-    # Get intro video
-    intro, intro_audio = get_text_intro("Nishant Dash", "Black Belt Poomsae", fps=fps)
-
-    video = ffmpeg.filter([intro, match_video.filter("settb", "AVTB")], "xfade", transition="fade", offset=2)
-    audio = ffmpeg.filter([intro_audio, match_audio], "acrossfade", d=1)
-    output = ffmpeg.output(audio, video, 'out.mp4').overwrite_output()
-    print(output.compile())
-    # output.run()
+if __name__ == "__main__":
+    config = read_config()
+    bar = ProgressBar(len(config))
+    for c in config:
+        bar.print(f"Creating: {c.output_file_name}.mp4")
+        create_video(c)
+        bar.increment()
+    bar.print()

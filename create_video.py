@@ -1,19 +1,18 @@
 import os
 import subprocess
-
+from video_info import VideoInfo
 
 def create_video(
-        video_path: str,
-        first_line: str,
-        second_line: str,
-        segments: list,
-        out_file_name: str
+        video_info: VideoInfo,
 ):
-    render_intro(first_line, second_line)
-    render_segments(video_path, segments)
-    join_segments(out_file_name, segments)
-    for i in range(len(segments)):
-        os.remove(f"segment_{i}.mp4")
+    render_intro(video_info.first_line, video_info.second_line)
+    render_segments(video_info.path, video_info.segments)
+    join_segments(video_info.output_file_name, video_info.segments)
+    for i in range(len(video_info.segments)):
+        try:
+            os.remove(f"segment_{i}.mp4")
+        except FileNotFoundError:
+            pass
 
 
 def cross_fade(
@@ -143,7 +142,7 @@ def render_segments(video_path: str, segments: list):
     """
     for i, segment in enumerate(segments, start=1):
         start, stop = segment
-        command = f"ffmpeg -hide_banner -ss {start} -i {video_path} -t {stop - start} -y -c copy segment_{i}.mp4"
+        command = f'ffmpeg -hide_banner -ss {start} -i "{video_path}" -t {stop - start} -y -c copy segment_{i}.mp4'
         subprocess.run(command, shell=True, capture_output=True)
 
 
