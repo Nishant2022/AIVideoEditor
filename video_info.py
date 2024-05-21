@@ -1,4 +1,5 @@
 import csv
+import cv2
 from pathlib import Path
 
 
@@ -68,3 +69,8 @@ def read_config(config_file_path: str = "config.csv", parent_path: str = None):
 
             config.append(VideoInfo(first_line, second_line, path, segments))
     return config
+
+
+def get_fps(path):
+    cap = cv2.VideoCapture(path)
+    return cap.get(cv2.CAP_PROP_FPS)
