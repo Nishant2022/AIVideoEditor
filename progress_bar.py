@@ -12,6 +12,14 @@ BLACK_FG = "30"
 BLACK_BG = "30"
 RED_FG = "31"
 RED_BG = "41"
+GREEN_FG = "32"
+GREEN_BG = "42"
+YELLOW_FG = "33"
+YELLOW_BG = "43"
+BLUE_FG = "34"
+BLUE_BG = "44"
+WHITE_FG = "37"
+WHITE_BG = "47"
 BRIGHT_GREEN_FG = "92"
 BRIGHT_GREEN_BG = "102"
 BRIGHT_YELLOW_FG = "93"
@@ -47,9 +55,9 @@ class ProgressBar():
             bar_text = self._bar_text()
             if self.color:
                 print(
-                    ESC + CSI + BRIGHT_YELLOW_FG + SGR,
+                    ESC + CSI + YELLOW_FG + SGR,
                     "\r", bar_text,
-                    ESC + CSI + BRIGHT_WHITE_FG + SGR,
+                    ESC + CSI + WHITE_FG + SGR,
                     end="",
                     sep=""
                 )
@@ -59,9 +67,9 @@ class ProgressBar():
                 self.completed = True
                 if self.color:
                     print(
-                        ESC + CSI + BRIGHT_GREEN_FG + SGR,
+                        ESC + CSI + GREEN_FG + SGR,
                         "\r", bar_text,
-                        ESC + CSI + BRIGHT_WHITE_FG + SGR,
+                        ESC + CSI + WHITE_FG + SGR,
                         end="\n",
                         sep=""
                     )
@@ -90,17 +98,17 @@ class NestedProgressBar(MutableSequence):
             if self.color:
                 if bar.n_completed == bar.n_jobs:
                     print(
-                        ESC + CSI + BRIGHT_GREEN_FG + SGR,
+                        ESC + CSI + GREEN_FG + SGR,
                         bar._bar_text(),
-                        ESC + CSI + BRIGHT_WHITE_FG + SGR,
+                        ESC + CSI + WHITE_FG + SGR,
                         end="\n",
                         sep=""
                     )
                 else:
                     print(
-                        ESC + CSI + BRIGHT_YELLOW_FG + SGR,
+                        ESC + CSI + YELLOW_FG + SGR,
                         bar._bar_text(),
-                        ESC + CSI + BRIGHT_WHITE_FG + SGR,
+                        ESC + CSI + WHITE_FG + SGR,
                         end="\n",
                         sep=""
                     )
