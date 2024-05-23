@@ -1,5 +1,6 @@
 import io
 import re
+import json
 import subprocess
 from pathlib import Path
 from progress_bar import NestedProgressBar, ProgressBar
@@ -11,6 +12,17 @@ def create_dataset(config_file: str, parent_path=None):
     temp_data_folder.mkdir(exist_ok=True)
 
     parent_folder = Path("data")
+    if not parent_folder.exists():
+        parent_folder.mkdir()
+
+    history_file = parent_folder / ".history.json"
+    history = dict()
+    if history_file.exists():
+        with open(history_file) as f:
+            history = json.load(f)
+    else:
+        history_file.touch()
+
     include_folder = parent_folder / "include"
     exclude_folder = parent_folder / "exclude"
 
@@ -18,6 +30,10 @@ def create_dataset(config_file: str, parent_path=None):
     bars = NestedProgressBar([ProgressBar(len(config))])
 
     for i, video in enumerate(config):
+        if str(video.path) in history:
+            bars[0].increment()
+            bars.print()
+            continue
         # Create Folders
         data_include_folder = include_folder / f"{video.output_file_name}_{i}"
         data_exclude_folder = exclude_folder / f"{video.output_file_name}_{i}"
@@ -71,6 +87,9 @@ def create_dataset(config_file: str, parent_path=None):
             if not include:
                 file.rename(data_exclude_folder / file.name)
         bars[0].increment()
+        history[str(video.path)] = "completed"
+        with open(history_file, "w") as f:
+            json.dump(history, f)
     bars.print()
     bars.finish()
 
