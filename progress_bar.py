@@ -72,6 +72,10 @@ class ProgressBar():
         if self.n_completed < self.n_jobs:
             self.n_completed += 1
 
+    def set_value(self, i: int):
+        if i <= self.n_jobs:
+            self.n_completed = i
+
 
 class NestedProgressBar(MutableSequence):
     def __init__(self, bars: list[ProgressBar] = None, color: bool = True):
