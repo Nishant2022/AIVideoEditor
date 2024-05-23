@@ -133,7 +133,17 @@ class NestedProgressBar(MutableSequence):
         return len(self.bars)
 
     def insert(self, i: int, item: ProgressBar):
+        self.finish()
+        print()
         self.bars.insert(i, item)
+        print(
+            ESC, CSI, len(self.bars), CPL,
+            end="",
+            sep=""
+        )
+
+    def append(self, item: ProgressBar):
+        self.insert(len(self), item)
 
 
 if __name__ == "__main__":
@@ -154,11 +164,15 @@ if __name__ == "__main__":
     for i in range(100):
         if i % 20 == 0:
             bars[1] = ProgressBar(20)
-        if i % 10 == 1:
+        if i % 10 == 0:
             bars[0].increment()
+        if i == 50:
+            bars.append(ProgressBar(25))
         bars[0].update_message(i)
         bars[1].update_message(i // 20)
         bars[1].increment()
+        if len(bars) > 2:
+            bars[2].increment()
         bars.print()
         time.sleep(.1)
     bars.finish()

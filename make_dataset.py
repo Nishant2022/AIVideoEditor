@@ -15,7 +15,7 @@ def create_dataset(config_file: str, parent_path=None):
     exclude_folder = parent_folder / "exclude"
 
     config = read_config(config_file, parent_path)
-    bars = NestedProgressBar([ProgressBar(len(config)), None])
+    bars = NestedProgressBar([ProgressBar(len(config))])
 
     for i, video in enumerate(config):
         # Create Folders
@@ -28,7 +28,10 @@ def create_dataset(config_file: str, parent_path=None):
         # Extract Frames
         extract_frames_text = f"Extracting Frames of {video.path.name}"
         frame_count = get_frame_count(str(video.path))
-        bars[1] = ProgressBar(frame_count)
+        if len(bars) != 2:
+            bars.append(ProgressBar(frame_count))
+        else:
+            bars[1] = ProgressBar(frame_count)
         bars[1].update_message(extract_frames_text)
         bars.print()
         command = [
