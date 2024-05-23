@@ -1,20 +1,21 @@
+import io
 import re
 import subprocess
 from pathlib import Path
-from progress_bar import ProgressBar
-from video_info import read_config, get_fps
+from progress_bar import NestedProgressBar, ProgressBar
+from video_info import read_config, get_fps, get_frame_count
 
 
 def create_dataset(config_file: str, parent_path=None):
     temp_data_folder = Path("temp_data")
     temp_data_folder.mkdir(exist_ok=True)
 
-    parent_folder = Path("dataset")
+    parent_folder = Path("data")
     include_folder = parent_folder / "include"
     exclude_folder = parent_folder / "exclude"
 
     config = read_config(config_file, parent_path)
-    bar = ProgressBar(len(config))
+    bars = NestedProgressBar([ProgressBar(len(config)), None])
 
     for i, video in enumerate(config):
         # Create Folders
@@ -25,17 +26,29 @@ def create_dataset(config_file: str, parent_path=None):
         data_exclude_folder.mkdir(parents=True, exist_ok=True)
 
         # Extract Frames
-        bar.print(f"Extracting Frames of {video.path.name}")
+        extract_frames_text = f"Extracting Frames of {video.path.name}"
+        frame_count = get_frame_count(str(video.path))
+        bars[1] = ProgressBar(frame_count)
+        bars[1].update_message(extract_frames_text)
+        bars.print()
         command = [
             "ffmpeg",
+            "-loglevel", "error",
+            "-progress", "-",
+            "-nostats",
             "-i", str(video.path),
             "-s", "320x180",
             f"temp_data/{video.output_file_name}_%06d.jpg"
         ]
-        subprocess.run(command, capture_output=True)
+        proc = subprocess.Popen(command, stdout=subprocess.PIPE)
+        for line in io.TextIOWrapper(proc.stdout, encoding="utf-8"):
+            if 'frame=' in line:
+                progress = int(line.strip()[6:])
+                bars[1].set_value(progress)
+                bars.print()
+        bars.print()
 
         # Get frames
-        bar.print(f"Gathering Frames of {video.path.name}")
         p = temp_data_folder.glob("**/*")
         files = [x for x in p if x.is_file()]
 
@@ -43,7 +56,7 @@ def create_dataset(config_file: str, parent_path=None):
         frame_segments = [(round(x * fps), round(y * fps))
                           for x, y in video.segments]
 
-        bar.print(f"Classifying Frames of {video.path.name}")
+        # Move Frames
         for file in files:
             frame_number = int(re.findall(r'\d{6}', file.name)[0])
             include = False
@@ -54,9 +67,10 @@ def create_dataset(config_file: str, parent_path=None):
                     break
             if not include:
                 file.rename(data_exclude_folder / file.name)
-        bar.increment()
+        bars[0].increment()
+    bars.print()
+    bars.finish()
 
-    bar.print()
     temp_data_folder.rmdir()
 
 

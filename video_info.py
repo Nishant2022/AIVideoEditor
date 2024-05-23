@@ -74,3 +74,8 @@ def read_config(config_file_path: str = "config.csv", parent_path: str = None):
 def get_fps(path):
     cap = cv2.VideoCapture(path)
     return cap.get(cv2.CAP_PROP_FPS)
+
+
+def get_frame_count(path):
+    cap = cv2.VideoCapture(path)
+    return int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
