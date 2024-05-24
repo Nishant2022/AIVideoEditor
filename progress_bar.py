@@ -1,3 +1,6 @@
+from time import time
+from datetime import timedelta
+from collections import deque
 from collections.abc import MutableSequence
 
 ESC = "\033"  # Escape
@@ -38,13 +41,19 @@ class ProgressBar():
         self.n_completed = 0
         self.completed = False
         self.message = ""
+        self.times = deque()
 
     def _bar_text(self):
         message = self.message
         percentage = self.n_completed * 100 / self.n_jobs
         bar = "█" * (self.n_completed * self.bar_width // self.n_jobs)
         bar += "-" * (self.bar_width - (self.n_completed * self.bar_width // self.n_jobs))
-        complete_bar = f"Progress: |{bar}| {percentage:.2f}% ({self.n_completed}/{self.n_jobs}) {message}"
+        eta = ""
+        if len(self.times) == 5:
+            remaining = self.n_jobs - self.n_completed
+            delta = timedelta(seconds=(self.times[-1] - self.times[0])) / 5
+            eta = f" eta: {str(delta * remaining)}".split(".")[0]
+        complete_bar = f"Progress: |{bar}| {percentage:.2f}%{eta} ({self.n_completed}/{self.n_jobs}) {message}"
         return ESC + CSI + EL + complete_bar
 
     def update_message(self, message: str = ""):
@@ -79,6 +88,9 @@ class ProgressBar():
     def increment(self):
         if self.n_completed < self.n_jobs:
             self.n_completed += 1
+            self.times.append(time())
+            if len(self.times) > 5:
+                self.times.pop()
 
     def set_value(self, i: int):
         if i <= self.n_jobs:
